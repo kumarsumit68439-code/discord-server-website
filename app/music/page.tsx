@@ -34,9 +34,8 @@ export default function MusicPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [audioPreview, setAudioPreview] = useState<HTMLAudioElement | null>(null);
 
-  // Check session without forcing login page
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setLoggedIn(Boolean(d.authenticated)))
       .catch(() => setLoggedIn(false));
@@ -52,14 +51,14 @@ export default function MusicPage() {
 
     try {
       if (source === "amazon") {
-        // Stay on our site — embed Amazon search in iframe (no new tab)
         setAmazonQuery(q);
         setLoading(false);
         return;
       }
 
       const res = await fetch(
-        `/api/music/search?q=${encodeURIComponent(q)}&source=${source}`
+        `/api/music/search?q=${encodeURIComponent(q)}&source=${source}`,
+        { credentials: "same-origin" }
       );
       const data = await res.json().catch(() => ({}));
 
@@ -80,7 +79,7 @@ export default function MusicPage() {
       }
 
       if (data.warning) setError(data.warning);
-    } catch (e) {
+    } catch {
       setError("Network error. Try again.");
     }
     setLoading(false);
@@ -103,11 +102,12 @@ export default function MusicPage() {
       <div className="bg-scene" />
       <div className="page-wrap music-page">
         <header className="music-header">
-          <Link href={loggedIn ? "/dashboard" : "/"} className="music-back">
-            ← {loggedIn ? "Dashboard" : "Home"}
+          {/* Always go Home (/) — never /login. Middleware sends logged-in users to dashboard. */}
+          <Link href="/" className="music-back">
+            ← Home
           </Link>
           <h1 className="music-title">Music</h1>
-          <span className="music-back" style={{ opacity: 0.5 }}>
+          <span className="music-back" style={{ opacity: 0.6, fontSize: "0.8rem" }}>
             {loggedIn ? "Signed in" : "Guest"}
           </span>
         </header>
@@ -162,7 +162,6 @@ export default function MusicPage() {
 
         {error && <p className="music-error">{error}</p>}
 
-        {/* YouTube player */}
         {source === "youtube" && activeYt && (
           <div className="music-player">
             <iframe
@@ -174,7 +173,6 @@ export default function MusicPage() {
           </div>
         )}
 
-        {/* Spotify embed */}
         {source === "spotify" && activeSp && (
           <div className="music-player spotify">
             <iframe
@@ -186,18 +184,16 @@ export default function MusicPage() {
           </div>
         )}
 
-        {/* Amazon — in-page, no new tab */}
         {source === "amazon" && amazonQuery && (
           <div className="music-player amazon">
             <iframe
               title="Amazon Music"
               src={`https://music.amazon.com/search/${encodeURIComponent(amazonQuery)}`}
               allow="autoplay; encrypted-media; fullscreen"
-              // sandbox keeps it contained on our page
               referrerPolicy="no-referrer-when-downgrade"
             />
             <p className="amazon-note">
-              Amazon sometimes blocks embed. If blank screen dikhe, neeche se same-window open use karo.
+              Amazon kabhi embed block karta hai. Blank ho to same tab open use karo.
             </p>
             <a
               className="btn primary full"
@@ -206,7 +202,7 @@ export default function MusicPage() {
               target="_self"
               rel="noopener noreferrer"
             >
-              Open Amazon search in this tab
+              Open Amazon in this tab
             </a>
           </div>
         )}
@@ -258,12 +254,7 @@ export default function MusicPage() {
                       30s
                     </button>
                   )}
-                  <a
-                    href={item.url}
-                    target="_self"
-                    rel="noopener noreferrer"
-                    className="mini-btn"
-                  >
+                  <a href={item.url} target="_self" rel="noopener noreferrer" className="mini-btn">
                     Open
                   </a>
                 </div>
@@ -271,17 +262,15 @@ export default function MusicPage() {
             ))}
 
           {source === "amazon" && !amazonQuery && (
-            <p className="music-hint">
-              Song search karo — result isi page pe Amazon Music ke andar khulega (new tab nahi).
-            </p>
+            <p className="music-hint">Song search karo — Amazon isi page pe khulega.</p>
           )}
 
           {!loading && source === "youtube" && ytResults.length === 0 && !error && (
-            <p className="music-hint">Search any track — play yahi pe YouTube se.</p>
+            <p className="music-hint">Search any track — play yahi pe.</p>
           )}
         </div>
 
-        <p className="music-footer">YouTube · Spotify · Amazon — on this site</p>
+        <p className="music-footer">YouTube · Spotify · Amazon</p>
       </div>
     </>
   );

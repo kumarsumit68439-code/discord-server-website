@@ -12,6 +12,7 @@ export default async function Home() {
   const session = await getSession();
   if (session) redirect("/dashboard");
 
+  // Guest landing — NOT the /login page
   return (
     <>
       <div className="bg-scene" />

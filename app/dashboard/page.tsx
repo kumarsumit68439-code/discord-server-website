@@ -13,7 +13,8 @@ const API_KEYS_SITE = "https://clever-chat-keys.lovable.app/";
 
 export default async function DashboardPage() {
   const user = await getSession();
-  if (!user) redirect("/login");
+  // No session → home (not login page)
+  if (!user) redirect("/");
 
   return (
     <>

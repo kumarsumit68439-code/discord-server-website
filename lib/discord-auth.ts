@@ -12,21 +12,13 @@ function getSecret() {
   ).trim();
 }
 
-/** Prefer real request host so cookie + redirect stay on same domain */
-export function getBaseUrlFromRequest(req?: { nextUrl?: { origin: string }; headers?: Headers }) {
-  if (req?.nextUrl?.origin) {
-    return req.nextUrl.origin.replace(/\/+$/, "");
-  }
-  const raw =
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  return raw.replace(/\/+$/, "");
-}
-
 export function getCallbackUrl(origin?: string) {
-  const base = (origin || process.env.NEXTAUTH_URL || "").replace(/\/+$/, "") ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  return `${base.replace(/\/+$/, "")}/api/auth/callback/discord`;
+  const base = (
+    origin ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+  ).replace(/\/+$/, "");
+  return `${base}/api/auth/callback/discord`;
 }
 
 export type SessionUser = {
@@ -100,7 +92,7 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 }
 
-export function applySessionCookie(res: { cookies: { set: Function } }, token: string) {
+export function applySessionCookie(res: { cookies: { set: (args: Record<string, unknown>) => void } }, token: string) {
   const maxAge = SESSION_DAYS * 24 * 60 * 60;
   res.cookies.set({
     name: COOKIE_NAME,
@@ -114,7 +106,7 @@ export function applySessionCookie(res: { cookies: { set: Function } }, token: s
   });
 }
 
-export function clearSessionCookieOn(res: { cookies: { set: Function } }) {
+export function clearSessionCookieOn(res: { cookies: { set: (args: Record<string, unknown>) => void } }) {
   res.cookies.set({
     name: COOKIE_NAME,
     value: "",
@@ -148,7 +140,7 @@ export async function exchangeCode(
   const redirectUri = getCallbackUrl(origin);
 
   if (!clientId || !clientSecret) {
-    return { ok: false, error: "Missing DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET in Vercel env" };
+    return { ok: false, error: "Missing DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET" };
   }
 
   const body = new URLSearchParams({
@@ -164,17 +156,13 @@ export async function exchangeCode(
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-
   const tokenJson = await tokenRes.json();
 
   if (!tokenRes.ok) {
     return {
       ok: false,
       error: tokenJson.error || "token_exchange_failed",
-      details: {
-        discord_error: tokenJson,
-        redirect_uri_used: redirectUri,
-      },
+      details: { discord_error: tokenJson, redirect_uri_used: redirectUri },
     };
   }
 
@@ -182,7 +170,6 @@ export async function exchangeCode(
     headers: { Authorization: `Bearer ${tokenJson.access_token}` },
   });
   const userJson = await userRes.json();
-
   if (!userRes.ok) {
     return { ok: false, error: "failed_to_fetch_user", details: userJson };
   }
