@@ -1,15 +1,64 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, Suspense } from "react";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginContent() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return (
+      <main className="landing">
+        <div className="card">
+          <p className="desc">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "authenticated") {
+    return (
+      <main className="landing">
+        <div className="card">
+          <p className="desc">Redirecting to dashboard...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="landing">
       <div className="card">
         <div className="logo">7</div>
         <h1>Login</h1>
         <p className="desc">Sign in with Discord to access your dashboard</p>
+
+        {error && (
+          <p
+            style={{
+              color: "#f87171",
+              fontSize: "0.85rem",
+              marginBottom: "1rem",
+              background: "rgba(248,113,113,0.1)",
+              padding: "0.75rem",
+              borderRadius: "10px",
+            }}
+          >
+            Login error: {error}. Check Discord Client ID / Secret and Redirect URL.
+          </p>
+        )}
+
         <button
           onClick={() => signIn("discord", { callbackUrl: "/dashboard" })}
           className="btn primary full"
@@ -29,10 +78,27 @@ export default function LoginPage() {
           </svg>
           Continue with Discord
         </button>
+
         <p className="or" style={{ marginTop: "1.25rem" }}>
           <Link href="/">← Back to home</Link>
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="landing">
+          <div className="card">
+            <p className="desc">Loading...</p>
+          </div>
+        </main>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
