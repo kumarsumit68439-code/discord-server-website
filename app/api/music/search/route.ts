@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() || "";
   const source = req.nextUrl.searchParams.get("source") || "youtube";
@@ -24,95 +26,138 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ error: "Unknown source" }, { status: 400 });
 }
 
-async function searchYouTube(q: string) {
-  const key = process.env.YOUTUBE_API_KEY?.trim();
+type YTResult = {
+  id: string;
+  title: string;
+  channel: string;
+  thumbnail: string;
+};
 
-  if (key) {
-    const url = new URL("https://www.googleapis.com/youtube/v3/search");
-    url.searchParams.set("part", "snippet");
-    url.searchParams.set("type", "video");
-    url.searchParams.set("maxResults", "12");
-    url.searchParams.set("q", q);
-    url.searchParams.set("key", key);
-    url.searchParams.set("videoCategoryId", "10"); // Music
+async function searchYouTubeOfficial(q: string, key: string): Promise<YTResult[] | null> {
+  const url = new URL("https://www.googleapis.com/youtube/v3/search");
+  url.searchParams.set("part", "snippet");
+  url.searchParams.set("type", "video");
+  url.searchParams.set("maxResults", "12");
+  url.searchParams.set("q", q);
+  url.searchParams.set("key", key);
+  // Don't force category 10 — some keys/regions block it; music still ranks high
 
-    const res = await fetch(url.toString());
-    const data = await res.json();
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  const data = await res.json();
 
-    if (!res.ok) {
-      return NextResponse.json(
-        {
-          error: data.error?.message || "YouTube API error",
-          searchUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
-        },
-        { status: 502 }
-      );
-    }
-
-    const results = (data.items || []).map(
-      (item: {
-        id: { videoId: string };
-        snippet: {
-          title: string;
-          channelTitle: string;
-          thumbnails: { medium?: { url: string }; default?: { url: string } };
-        };
-      }) => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        channel: item.snippet.channelTitle,
-        thumbnail:
-          item.snippet.thumbnails.medium?.url ||
-          item.snippet.thumbnails.default?.url ||
-          "",
-      })
-    );
-
-    return NextResponse.json({ results });
+  if (!res.ok) {
+    console.error("YouTube API error:", data.error?.message || data);
+    return null;
   }
 
-  // Fallback without API key: use YouTube oEmbed-style discovery via Invidious-compatible public search
-  // Try a public Invidious instance for search (no key needed)
-  try {
-    const inv = await fetch(
-      `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(q)}&type=video`,
-      { next: { revalidate: 60 } }
-    );
-    if (inv.ok) {
-      const items = await inv.json();
-      const results = (Array.isArray(items) ? items : [])
+  return (data.items || [])
+    .map(
+      (item: {
+        id?: { videoId?: string };
+        snippet?: {
+          title?: string;
+          channelTitle?: string;
+          thumbnails?: { medium?: { url: string }; default?: { url: string } };
+        };
+      }) => {
+        const id = item.id?.videoId;
+        if (!id) return null;
+        return {
+          id,
+          title: item.snippet?.title || "Untitled",
+          channel: item.snippet?.channelTitle || "",
+          thumbnail:
+            item.snippet?.thumbnails?.medium?.url ||
+            item.snippet?.thumbnails?.default?.url ||
+            `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+        } as YTResult;
+      }
+    )
+    .filter(Boolean) as YTResult[];
+}
+
+const INVIDIOUS_HOSTS = [
+  "https://inv.nadeko.net",
+  "https://invidious.nerdvpn.de",
+  "https://yewtu.be",
+  "https://invidious.fdn.fr",
+  "https://vid.puffyan.us",
+];
+
+async function searchYouTubeFallback(q: string): Promise<YTResult[]> {
+  for (const host of INVIDIOUS_HOSTS) {
+    try {
+      const res = await fetch(
+        `${host}/api/v1/search?q=${encodeURIComponent(q)}&type=video`,
+        {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(8000),
+        }
+      );
+      if (!res.ok) continue;
+      const items = await res.json();
+      if (!Array.isArray(items) || !items.length) continue;
+
+      const results = items
         .slice(0, 12)
         .map(
           (item: {
-            videoId: string;
-            title: string;
-            author: string;
+            videoId?: string;
+            title?: string;
+            author?: string;
             videoThumbnails?: { url: string }[];
-          }) => ({
-            id: item.videoId,
-            title: item.title,
-            channel: item.author,
-            thumbnail:
-              item.videoThumbnails?.[0]?.url ||
-              `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`,
-          })
+          }) => {
+            const id = item.videoId;
+            if (!id) return null;
+            return {
+              id,
+              title: item.title || "Untitled",
+              channel: item.author || "",
+              thumbnail:
+                item.videoThumbnails?.[0]?.url ||
+                `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+            } as YTResult;
+          }
         )
-        .filter((r: { id: string }) => r.id);
+        .filter(Boolean) as YTResult[];
 
-      if (results.length) {
-        return NextResponse.json({ results });
-      }
+      if (results.length) return results;
+    } catch {
+      /* try next host */
     }
-  } catch {
-    /* fall through */
+  }
+  return [];
+}
+
+async function searchYouTube(q: string) {
+  const key = process.env.YOUTUBE_API_KEY?.trim();
+
+  // 1) Official API if key present
+  if (key) {
+    const official = await searchYouTubeOfficial(q, key);
+    if (official && official.length) {
+      return NextResponse.json({ results: official, engine: "youtube-api" });
+    }
   }
 
-  // Last resort: return empty + external link hint
+  // 2) Fallback (works when API is blocked / no key)
+  const fallback = await searchYouTubeFallback(q);
+  if (fallback.length) {
+    return NextResponse.json({
+      results: fallback,
+      engine: "fallback",
+      warning: key
+        ? "YouTube API blocked — using fallback search. Fix API key restrictions in Google Cloud."
+        : undefined,
+    });
+  }
+
   return NextResponse.json({
     results: [],
-    warning:
-      "No YouTube API key set. Add YOUTUBE_API_KEY in Vercel for search, or open YouTube directly.",
-    searchUrl: `https://music.youtube.com/search?q=${encodeURIComponent(q)}`,
+    error:
+      "Search unavailable. Enable YouTube Data API v3 + remove key restrictions, or try again later.",
+    searchUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
   });
 }
 
