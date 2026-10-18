@@ -1,19 +1,23 @@
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 
-const baseUrl =
-  process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+function getBaseUrl() {
+  const raw =
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  return raw.replace(/\/$/, "");
+}
+
+const baseUrl = getBaseUrl();
 
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
-      clientId: process.env.DISCORD_CLIENT_ID as string,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+      clientId: (process.env.DISCORD_CLIENT_ID || "").trim(),
+      clientSecret: (process.env.DISCORD_CLIENT_SECRET || "").trim(),
       authorization: {
         params: {
           scope: "identify email",
-          redirect_uri: `${baseUrl.replace(/\/$/, "")}/api/auth/callback/discord`,
         },
       },
     }),
@@ -88,7 +92,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl: b }) {
-      const root = b || baseUrl;
+      const root = (b || baseUrl).replace(/\/$/, "");
       if (url.startsWith("/")) return `${root}/dashboard`;
       try {
         if (new URL(url).origin === new URL(root).origin) return url;
