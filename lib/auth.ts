@@ -1,77 +1,29 @@
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 
-function getBaseUrl() {
-  const raw =
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  return raw.replace(/\/$/, "");
+// Ensure no trailing slash (Discord requires exact redirect_uri match)
+if (typeof process !== "undefined" && process.env.NEXTAUTH_URL?.endsWith("/")) {
+  process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL.replace(/\/+$/, "");
 }
-
-const baseUrl = getBaseUrl();
 
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
       clientId: (process.env.DISCORD_CLIENT_ID || "").trim(),
       clientSecret: (process.env.DISCORD_CLIENT_SECRET || "").trim(),
-      authorization: {
-        params: {
-          scope: "identify email",
-        },
-      },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
     signIn: "/login",
     error: "/login",
   },
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-      },
-    },
-    callbackUrl: {
-      name: `next-auth.callback-url`,
-      options: {
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-      },
-    },
-    csrfToken: {
-      name: `next-auth.csrf-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-      },
-    },
-    state: {
-      name: `next-auth.state`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-        maxAge: 60 * 15,
-      },
-    },
-  },
   callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account && profile) {
+    async jwt({ token, profile }) {
+      if (profile) {
         const p = profile as {
           id?: string;
           username?: string;
@@ -91,8 +43,8 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async redirect({ url, baseUrl: b }) {
-      const root = (b || baseUrl).replace(/\/$/, "");
+    async redirect({ url, baseUrl }) {
+      const root = baseUrl.replace(/\/+$/, "");
       if (url.startsWith("/")) return `${root}/dashboard`;
       try {
         if (new URL(url).origin === new URL(root).origin) return url;
