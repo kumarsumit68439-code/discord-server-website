@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "My Discord Server",
-  description: "Join our awesome Discord community",
+  title: "CR7 AI API KEY PROVIDER SERVER",
+  description: "Join CR7 AI API Key Provider Discord server – real AI API keys",
 };
 
 export default function RootLayout({

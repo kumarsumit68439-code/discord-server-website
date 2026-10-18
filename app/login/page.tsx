@@ -2,6 +2,9 @@
 
 import { signIn } from "next-auth/react";
 
+const DISCORD_CHANNEL_URL =
+  "https://discord.com/channels/1561418826128560300/1561419818576519299";
+
 export default function LoginPage() {
   return (
     <main
@@ -31,27 +34,32 @@ export default function LoginPage() {
           style={{
             width: "72px",
             height: "72px",
-            background: "#5865F2",
+            background: "#E11D48",
             borderRadius: "18px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 1.5rem",
-            fontSize: "2.2rem",
+            fontSize: "1.8rem",
+            fontWeight: 800,
           }}
         >
-          🔒
+          7
         </div>
 
         <h1 style={{ fontSize: "1.75rem", marginBottom: "0.5rem", fontWeight: 700 }}>
           Login
         </h1>
         <p style={{ color: "#b9bbbe", marginBottom: "2rem" }}>
-          Sign in with your Discord account to continue
+          CR7 AI API KEY PROVIDER SERVER
+          <br />
+          <span style={{ fontSize: "0.9rem", color: "#72767d" }}>
+            Sign in to open the server channel
+          </span>
         </p>
 
         <button
-          onClick={() => signIn("discord", { callbackUrl: "/" })}
+          onClick={() => signIn("discord", { callbackUrl: DISCORD_CHANNEL_URL })}
           style={{
             width: "100%",
             background: "#5865F2",
