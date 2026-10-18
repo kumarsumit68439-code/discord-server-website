@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
@@ -8,9 +9,9 @@ export default function LoginPage() {
       <div className="card">
         <div className="logo">7</div>
         <h1>Login</h1>
-        <p className="desc">CR7 AI API KEY PROVIDER SERVER</p>
+        <p className="desc">Sign in with Discord to access your dashboard</p>
         <button
-          onClick={() => signIn("discord", { callbackUrl: "/" })}
+          onClick={() => signIn("discord", { callbackUrl: "/dashboard" })}
           className="btn primary full"
           style={{
             display: "flex",
@@ -20,6 +21,7 @@ export default function LoginPage() {
             border: "none",
             cursor: "pointer",
             width: "100%",
+            fontFamily: "inherit",
           }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -28,7 +30,7 @@ export default function LoginPage() {
           Continue with Discord
         </button>
         <p className="or" style={{ marginTop: "1.25rem" }}>
-          <a href="/">← Back</a>
+          <Link href="/">← Back to home</Link>
         </p>
       </div>
     </main>
