@@ -49,6 +49,14 @@ export default async function DashboardPage() {
               </span>
             </a>
 
+            <Link href="/music" className="link-btn">
+              <span className="link-icon">🎵</span>
+              <span className="link-text">
+                <span className="link-title">Music Search</span>
+                <span className="link-sub">YouTube · Spotify · Amazon</span>
+              </span>
+            </Link>
+
             <a
               href={API_KEYS_SITE}
               target="_blank"
@@ -72,19 +80,6 @@ export default async function DashboardPage() {
               <span className="link-text">
                 <span className="link-title">Join Server Invite</span>
                 <span className="link-sub">discord.gg/rGxv4Bfs8</span>
-              </span>
-            </a>
-
-            <a
-              href="https://discord.com/channels/@me"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-btn"
-            >
-              <span className="link-icon">👤</span>
-              <span className="link-text">
-                <span className="link-title">Open Discord App</span>
-                <span className="link-sub">Your DMs & servers</span>
               </span>
             </a>
           </div>

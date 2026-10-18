@@ -24,9 +24,12 @@ export default async function Home() {
               Login with Discord
             </Link>
             <p className="or">
-              or{" "}
+              <Link href="/music" style={{ color: "#818cf8" }}>
+                Music Search
+              </Link>
+              {" · "}
               <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
-                join server directly
+                join server
               </a>
             </p>
           </div>
