@@ -6,7 +6,7 @@ import { useEffect, Suspense } from "react";
 import Link from "next/link";
 
 function LoginContent() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
@@ -45,18 +45,29 @@ function LoginContent() {
         <p className="desc">Sign in with Discord to access your dashboard</p>
 
         {error && (
-          <p
+          <div
             style={{
-              color: "#f87171",
-              fontSize: "0.85rem",
+              color: "#fca5a5",
+              fontSize: "0.8rem",
               marginBottom: "1rem",
-              background: "rgba(248,113,113,0.1)",
-              padding: "0.75rem",
+              background: "rgba(248,113,113,0.12)",
+              padding: "0.85rem",
               borderRadius: "10px",
+              textAlign: "left",
+              lineHeight: 1.5,
             }}
           >
-            Login error: {error}. Check Discord Client ID / Secret and Redirect URL.
-          </p>
+            <strong>Error: {error}</strong>
+            <br />
+            {error === "OAuthCallback" && (
+              <>
+                Token exchange failed. Usually means:
+                <br />• Client Secret galat hai (Reset + re-copy)
+                <br />• Redirect URL Discord mein exact match nahi
+                <br />• NEXTAUTH_URL alag domain pe set hai
+              </>
+            )}
+          </div>
         )}
 
         <button
