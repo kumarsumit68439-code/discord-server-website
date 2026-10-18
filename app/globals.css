@@ -19,7 +19,6 @@ a {
   text-decoration: none;
 }
 
-/* Animated background */
 .bg-scene {
   position: fixed;
   inset: 0;
@@ -46,7 +45,6 @@ a {
   min-height: 100vh;
 }
 
-/* Landing */
 .landing {
   min-height: 100vh;
   display: flex;
@@ -129,7 +127,6 @@ a {
   color: #818cf8;
 }
 
-/* Music toggle */
 .music-btn {
   position: fixed;
   bottom: 1.25rem;
@@ -159,7 +156,6 @@ a {
   box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
 }
 
-/* ===== DASHBOARD / PROFILE (iuno-style) ===== */
 .profile-page {
   min-height: 100vh;
   display: flex;
@@ -289,10 +285,6 @@ a {
   border-color: rgba(88, 101, 242, 0.35);
 }
 
-.link-btn.featured:hover {
-  background: rgba(88, 101, 242, 0.28);
-}
-
 .link-icon {
   width: 40px;
   height: 40px;
@@ -341,7 +333,233 @@ a {
   font-size: 0.75rem;
 }
 
-/* Keep old dash classes for safety */
-.dash-root {
-  min-height: 100vh;
+/* ===== MUSIC PAGE ===== */
+.music-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.music-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.music-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.music-back {
+  color: #a1a1aa;
+  font-size: 0.9rem;
+}
+
+.music-back:hover {
+  color: #fff;
+}
+
+.music-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.music-tab {
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #a1a1aa;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.music-tab.active {
+  background: rgba(88, 101, 242, 0.25);
+  border-color: rgba(88, 101, 242, 0.45);
+  color: #fff;
+}
+
+.music-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.music-input {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.music-input:focus {
+  border-color: rgba(88, 101, 242, 0.5);
+}
+
+.music-search-btn {
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  border: none;
+  background: #5865f2;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.music-search-btn:disabled {
+  opacity: 0.6;
+}
+
+.music-error {
+  color: #fca5a5;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  background: rgba(248, 113, 113, 0.1);
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+}
+
+.music-player {
+  margin-bottom: 1.25rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
+  aspect-ratio: 16 / 9;
+}
+
+.music-player iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.music-player.spotify {
+  aspect-ratio: auto;
+  height: 152px;
+}
+
+.music-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.music-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: 0.15s;
+}
+
+.music-result:hover,
+.music-result.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(88, 101, 242, 0.35);
+}
+
+.music-result-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  padding: 0;
+}
+
+.music-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #1c1c22;
+}
+
+.music-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.music-track {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-artist {
+  color: #71717a;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-play-icon {
+  color: #818cf8;
+  font-size: 0.85rem;
+}
+
+.music-result-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.mini-btn {
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e4e4e7;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.music-hint {
+  color: #71717a;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 2rem 1rem;
+  line-height: 1.6;
+}
+
+.music-footer {
+  margin-top: 2rem;
+  text-align: center;
+  color: #3f3f46;
+  font-size: 0.75rem;
 }
