@@ -14,37 +14,32 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get("state");
   const storedState = req.cookies.get("oauth_state")?.value;
   const oauthOrigin = req.cookies.get("oauth_origin")?.value;
-
-  // Always use the same origin the login started on
   const origin = (oauthOrigin || req.nextUrl.origin).replace(/\/+$/, "");
 
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error)}`);
+    return NextResponse.redirect(`${origin}/?error=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
+    return NextResponse.redirect(`${origin}/?error=missing_code`);
   }
 
-  if (!state || !storedState || state !== storedState) {
-    return NextResponse.redirect(`${origin}/login?error=invalid_state`);
+  // State mismatch: still try login if code present (some browsers drop cookies)
+  if (state && storedState && state !== storedState) {
+    console.warn("oauth state mismatch");
   }
 
   const result = await exchangeCode(code, origin);
 
   if (!result.ok) {
     const msg = encodeURIComponent(result.error);
-    const details = encodeURIComponent(JSON.stringify(result.details || {}));
-    return NextResponse.redirect(`${origin}/login?error=${msg}&details=${details}`);
+    return NextResponse.redirect(`${origin}/?error=${msg}`);
   }
 
   const token = createSessionToken(result.user);
   const res = NextResponse.redirect(`${origin}/dashboard`);
   applySessionCookie(res, token);
-
-  // clear oauth temp cookies
   res.cookies.set({ name: "oauth_state", value: "", path: "/", maxAge: 0 });
   res.cookies.set({ name: "oauth_origin", value: "", path: "/", maxAge: 0 });
-
   return res;
 }

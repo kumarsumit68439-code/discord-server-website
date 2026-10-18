@@ -5,13 +5,7 @@ import Link from "next/link";
 
 type Source = "youtube" | "spotify" | "amazon";
 
-type YTItem = {
-  id: string;
-  title: string;
-  channel: string;
-  thumbnail: string;
-};
-
+type YTItem = { id: string; title: string; channel: string; thumbnail: string };
 type SpotifyItem = {
   id: string;
   name: string;
@@ -35,7 +29,7 @@ export default function MusicPage() {
   const [audioPreview, setAudioPreview] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" })
+    fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setLoggedIn(Boolean(d.authenticated)))
       .catch(() => setLoggedIn(false));
@@ -58,26 +52,21 @@ export default function MusicPage() {
 
       const res = await fetch(
         `/api/music/search?q=${encodeURIComponent(q)}&source=${source}`,
-        { credentials: "same-origin" }
+        { credentials: "include" }
       );
       const data = await res.json().catch(() => ({}));
-
       if (!res.ok) {
         setError(data.error || `Error ${res.status}`);
         setLoading(false);
         return;
       }
-
       if (source === "youtube") {
         setYtResults(data.results || []);
-        if (data.results?.[0]) setActiveYt(data.results[0].id);
-        else setActiveYt(null);
-      } else if (source === "spotify") {
+        setActiveYt(data.results?.[0]?.id || null);
+      } else {
         setSpResults(data.results || []);
-        if (data.results?.[0]) setActiveSp(data.results[0].id);
-        else setActiveSp(null);
+        setActiveSp(data.results?.[0]?.id || null);
       }
-
       if (data.warning) setError(data.warning);
     } catch {
       setError("Network error. Try again.");
@@ -102,12 +91,11 @@ export default function MusicPage() {
       <div className="bg-scene" />
       <div className="page-wrap music-page">
         <header className="music-header">
-          {/* Always go Home (/) — never /login. Middleware sends logged-in users to dashboard. */}
-          <Link href="/" className="music-back">
+          <Link href="/" className="music-back" prefetch={false}>
             ← Home
           </Link>
           <h1 className="music-title">Music</h1>
-          <span className="music-back" style={{ opacity: 0.6, fontSize: "0.8rem" }}>
+          <span style={{ fontSize: "0.8rem", color: "#71717a" }}>
             {loggedIn ? "Signed in" : "Guest"}
           </span>
         </header>
@@ -128,9 +116,7 @@ export default function MusicPage() {
                 setAmazonQuery("");
               }}
             >
-              {s === "youtube" && "YouTube"}
-              {s === "spotify" && "Spotify"}
-              {s === "amazon" && "Amazon Music"}
+              {s === "youtube" ? "YouTube" : s === "spotify" ? "Spotify" : "Amazon Music"}
             </button>
           ))}
         </div>
@@ -146,13 +132,7 @@ export default function MusicPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              source === "youtube"
-                ? "Search songs on YouTube..."
-                : source === "spotify"
-                  ? "Search on Spotify..."
-                  : "Search on Amazon Music..."
-            }
+            placeholder="Search songs..."
             className="music-input"
           />
           <button type="submit" className="music-search-btn" disabled={loading}>
@@ -165,7 +145,7 @@ export default function MusicPage() {
         {source === "youtube" && activeYt && (
           <div className="music-player">
             <iframe
-              title="YouTube player"
+              title="YouTube"
               src={`https://www.youtube.com/embed/${activeYt}?autoplay=1&rel=0`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -176,10 +156,9 @@ export default function MusicPage() {
         {source === "spotify" && activeSp && (
           <div className="music-player spotify">
             <iframe
-              title="Spotify player"
-              src={`https://open.spotify.com/embed/track/${activeSp}?utm_source=generator`}
+              title="Spotify"
+              src={`https://open.spotify.com/embed/track/${activeSp}`}
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
             />
           </div>
         )}
@@ -190,17 +169,12 @@ export default function MusicPage() {
               title="Amazon Music"
               src={`https://music.amazon.com/search/${encodeURIComponent(amazonQuery)}`}
               allow="autoplay; encrypted-media; fullscreen"
-              referrerPolicy="no-referrer-when-downgrade"
             />
-            <p className="amazon-note">
-              Amazon kabhi embed block karta hai. Blank ho to same tab open use karo.
-            </p>
             <a
               className="btn primary full"
               style={{ marginTop: "0.75rem" }}
               href={`https://music.amazon.com/search/${encodeURIComponent(amazonQuery)}`}
               target="_self"
-              rel="noopener noreferrer"
             >
               Open Amazon in this tab
             </a>
@@ -228,15 +202,8 @@ export default function MusicPage() {
 
           {source === "spotify" &&
             spResults.map((item) => (
-              <div
-                key={item.id}
-                className={`music-result${activeSp === item.id ? " active" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="music-result-main"
-                  onClick={() => setActiveSp(item.id)}
-                >
+              <div key={item.id} className={`music-result${activeSp === item.id ? " active" : ""}`}>
+                <button type="button" className="music-result-main" onClick={() => setActiveSp(item.id)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.image} alt="" className="music-thumb" />
                   <div className="music-meta">
@@ -246,31 +213,17 @@ export default function MusicPage() {
                 </button>
                 <div className="music-result-actions">
                   {item.preview_url && (
-                    <button
-                      type="button"
-                      className="mini-btn"
-                      onClick={() => playPreview(item.preview_url)}
-                    >
+                    <button type="button" className="mini-btn" onClick={() => playPreview(item.preview_url)}>
                       30s
                     </button>
                   )}
-                  <a href={item.url} target="_self" rel="noopener noreferrer" className="mini-btn">
+                  <a href={item.url} target="_self" className="mini-btn">
                     Open
                   </a>
                 </div>
               </div>
             ))}
-
-          {source === "amazon" && !amazonQuery && (
-            <p className="music-hint">Song search karo — Amazon isi page pe khulega.</p>
-          )}
-
-          {!loading && source === "youtube" && ytResults.length === 0 && !error && (
-            <p className="music-hint">Search any track — play yahi pe.</p>
-          )}
         </div>
-
-        <p className="music-footer">YouTube · Spotify · Amazon</p>
       </div>
     </>
   );
