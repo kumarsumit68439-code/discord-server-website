@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import MusicToggle from "@/components/MusicToggle";
 
+export const dynamic = "force-dynamic";
+
 const DISCORD_CHANNEL_URL =
   "https://discord.com/channels/1561418826128560300/1561419818576519299";
 const DISCORD_INVITE = "https://discord.gg/rGxv4Bfs8";

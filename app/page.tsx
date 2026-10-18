@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import MusicToggle from "@/components/MusicToggle";
 
+export const dynamic = "force-dynamic";
+
 const DISCORD_INVITE = "https://discord.gg/rGxv4Bfs8";
 
 export default async function Home() {

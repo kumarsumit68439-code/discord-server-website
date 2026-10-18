@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clearSessionCookie } from "@/lib/discord-auth";
 
+export const dynamic = "force-dynamic";
+
 function baseUrl() {
   const raw =
     process.env.NEXTAUTH_URL ||
@@ -11,12 +13,15 @@ function baseUrl() {
 export async function GET() {
   const res = NextResponse.redirect(`${baseUrl()}/`);
   const c = clearSessionCookie();
-  res.cookies.set(c.name, c.value, {
-    httpOnly: c.httpOnly,
-    secure: c.secure,
-    sameSite: c.sameSite,
-    path: c.path,
-    maxAge: c.maxAge,
+  res.cookies.set({
+    name: c.name,
+    value: "",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
   });
   return res;
 }

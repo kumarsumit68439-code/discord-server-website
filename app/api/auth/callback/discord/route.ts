@@ -5,6 +5,8 @@ import {
   sessionCookieOptions,
 } from "@/lib/discord-auth";
 
+export const dynamic = "force-dynamic";
+
 function baseUrl() {
   const raw =
     process.env.NEXTAUTH_URL ||
@@ -42,15 +44,26 @@ export async function GET(req: NextRequest) {
   }
 
   const token = createSessionToken(result.user);
-  const res = NextResponse.redirect(`${root}/dashboard`);
   const cookie = sessionCookieOptions(token);
-  res.cookies.set(cookie.name, cookie.value, {
-    httpOnly: cookie.httpOnly,
-    secure: cookie.secure,
-    sameSite: cookie.sameSite,
-    path: cookie.path,
+
+  // Set cookie on redirect response so browser stores it before loading dashboard
+  const res = NextResponse.redirect(`${root}/dashboard`);
+  res.cookies.set({
+    name: cookie.name,
+    value: cookie.value,
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
     maxAge: cookie.maxAge,
+    expires: cookie.expires,
   });
-  res.cookies.set("oauth_state", "", { maxAge: 0, path: "/" });
+  res.cookies.set({
+    name: "oauth_state",
+    value: "",
+    path: "/",
+    maxAge: 0,
+  });
+
   return res;
 }

@@ -1,10 +1,15 @@
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
-const COOKIE_NAME = "cr7_session";
+export const COOKIE_NAME = "cr7_session";
+const SESSION_DAYS = 30;
 
 function getSecret() {
-  return process.env.NEXTAUTH_SECRET || process.env.DISCORD_CLIENT_SECRET || "fallback-secret";
+  const s =
+    process.env.NEXTAUTH_SECRET ||
+    process.env.DISCORD_CLIENT_SECRET ||
+    "cr7-fallback-secret-change-me";
+  return s.trim();
 }
 
 function getBaseUrl() {
@@ -36,37 +41,61 @@ function verify(token: string): string | null {
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
   const expected = crypto.createHmac("sha256", getSecret()).update(payload).digest("base64url");
-  if (sig !== expected) return null;
+  try {
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return null;
+    if (!crypto.timingSafeEqual(a, b)) return null;
+  } catch {
+    return null;
+  }
   return payload;
 }
 
 export function createSessionToken(user: SessionUser): string {
-  const payload = Buffer.from(JSON.stringify({ ...user, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString(
-    "base64url"
-  );
+  const body = {
+    id: user.id,
+    name: user.name,
+    image: user.image,
+    email: user.email ?? null,
+    exp: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
+  };
+  const payload = Buffer.from(JSON.stringify(body), "utf8").toString("base64url");
   return sign(payload);
 }
 
 export function readSessionToken(token: string): SessionUser | null {
+  if (!token || token.length < 10) return null;
   const payload = verify(token);
   if (!payload) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (!data.exp || data.exp < Date.now()) return null;
-    return { id: data.id, name: data.name, image: data.image || null, email: data.email };
+    if (!data?.id || !data.exp || typeof data.exp !== "number") return null;
+    if (data.exp < Date.now()) return null;
+    return {
+      id: String(data.id),
+      name: String(data.name || "User"),
+      image: data.image || null,
+      email: data.email || null,
+    };
   } catch {
     return null;
   }
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  return readSessionToken(token);
+  try {
+    const store = await cookies();
+    const token = store.get(COOKIE_NAME)?.value;
+    if (!token) return null;
+    return readSessionToken(token);
+  } catch {
+    return null;
+  }
 }
 
 export function sessionCookieOptions(token: string) {
+  const maxAge = SESSION_DAYS * 24 * 60 * 60;
   return {
     name: COOKIE_NAME,
     value: token,
@@ -74,7 +103,8 @@ export function sessionCookieOptions(token: string) {
     secure: true,
     sameSite: "lax" as const,
     path: "/",
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge,
+    expires: new Date(Date.now() + maxAge * 1000),
   };
 }
 
@@ -87,6 +117,7 @@ export function clearSessionCookie() {
     sameSite: "lax" as const,
     path: "/",
     maxAge: 0,
+    expires: new Date(0),
   };
 }
 
