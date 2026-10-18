@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 
 type Source = "youtube" | "spotify" | "amazon";
@@ -30,7 +30,17 @@ export default function MusicPage() {
   const [spResults, setSpResults] = useState<SpotifyItem[]>([]);
   const [activeYt, setActiveYt] = useState<string | null>(null);
   const [activeSp, setActiveSp] = useState<string | null>(null);
+  const [amazonQuery, setAmazonQuery] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
   const [audioPreview, setAudioPreview] = useState<HTMLAudioElement | null>(null);
+
+  // Check session without forcing login page
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setLoggedIn(Boolean(d.authenticated)))
+      .catch(() => setLoggedIn(false));
+  }, []);
 
   const search = useCallback(async () => {
     const q = query.trim();
@@ -42,10 +52,8 @@ export default function MusicPage() {
 
     try {
       if (source === "amazon") {
-        window.open(
-          `https://music.amazon.com/search/${encodeURIComponent(q)}`,
-          "_blank"
-        );
+        // Stay on our site — embed Amazon search in iframe (no new tab)
+        setAmazonQuery(q);
         setLoading(false);
         return;
       }
@@ -53,13 +61,10 @@ export default function MusicPage() {
       const res = await fetch(
         `/api/music/search?q=${encodeURIComponent(q)}&source=${source}`
       );
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error || "Search failed");
-        if (data.searchUrl) {
-          // fallback external
-        }
+        setError(data.error || `Error ${res.status}`);
         setLoading(false);
         return;
       }
@@ -67,13 +72,15 @@ export default function MusicPage() {
       if (source === "youtube") {
         setYtResults(data.results || []);
         if (data.results?.[0]) setActiveYt(data.results[0].id);
+        else setActiveYt(null);
       } else if (source === "spotify") {
         setSpResults(data.results || []);
         if (data.results?.[0]) setActiveSp(data.results[0].id);
+        else setActiveSp(null);
       }
 
       if (data.warning) setError(data.warning);
-    } catch {
+    } catch (e) {
       setError("Network error. Try again.");
     }
     setLoading(false);
@@ -96,13 +103,13 @@ export default function MusicPage() {
       <div className="bg-scene" />
       <div className="page-wrap music-page">
         <header className="music-header">
-          <Link href="/" className="music-back">
-            ← Home
+          <Link href={loggedIn ? "/dashboard" : "/"} className="music-back">
+            ← {loggedIn ? "Dashboard" : "Home"}
           </Link>
           <h1 className="music-title">Music</h1>
-          <Link href="/dashboard" className="music-back">
-            Dashboard
-          </Link>
+          <span className="music-back" style={{ opacity: 0.5 }}>
+            {loggedIn ? "Signed in" : "Guest"}
+          </span>
         </header>
 
         <div className="music-tabs">
@@ -118,6 +125,7 @@ export default function MusicPage() {
                 setSpResults([]);
                 setActiveYt(null);
                 setActiveSp(null);
+                setAmazonQuery("");
               }}
             >
               {s === "youtube" && "YouTube"}
@@ -140,7 +148,7 @@ export default function MusicPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={
               source === "youtube"
-                ? "Search songs, artists on YouTube..."
+                ? "Search songs on YouTube..."
                 : source === "spotify"
                   ? "Search on Spotify..."
                   : "Search on Amazon Music..."
@@ -178,7 +186,31 @@ export default function MusicPage() {
           </div>
         )}
 
-        {/* Results */}
+        {/* Amazon — in-page, no new tab */}
+        {source === "amazon" && amazonQuery && (
+          <div className="music-player amazon">
+            <iframe
+              title="Amazon Music"
+              src={`https://music.amazon.com/search/${encodeURIComponent(amazonQuery)}`}
+              allow="autoplay; encrypted-media; fullscreen"
+              // sandbox keeps it contained on our page
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <p className="amazon-note">
+              Amazon sometimes blocks embed. If blank screen dikhe, neeche se same-window open use karo.
+            </p>
+            <a
+              className="btn primary full"
+              style={{ marginTop: "0.75rem" }}
+              href={`https://music.amazon.com/search/${encodeURIComponent(amazonQuery)}`}
+              target="_self"
+              rel="noopener noreferrer"
+            >
+              Open Amazon search in this tab
+            </a>
+          </div>
+        )}
+
         <div className="music-results">
           {source === "youtube" &&
             ytResults.map((item) => (
@@ -228,7 +260,7 @@ export default function MusicPage() {
                   )}
                   <a
                     href={item.url}
-                    target="_blank"
+                    target="_self"
                     rel="noopener noreferrer"
                     className="mini-btn"
                   >
@@ -238,29 +270,18 @@ export default function MusicPage() {
               </div>
             ))}
 
-          {source === "amazon" && (
+          {source === "amazon" && !amazonQuery && (
             <p className="music-hint">
-              Amazon Music search opens in a new tab. Type a song and press Search.
+              Song search karo — result isi page pe Amazon Music ke andar khulega (new tab nahi).
             </p>
           )}
 
-          {!loading &&
-            source === "youtube" &&
-            ytResults.length === 0 &&
-            !error && (
-              <p className="music-hint">
-                Search any track — results play here via YouTube embed.
-                <br />
-                <span style={{ opacity: 0.7 }}>
-                  Optional: set YOUTUBE_API_KEY in Vercel for richer search.
-                </span>
-              </p>
-            )}
+          {!loading && source === "youtube" && ytResults.length === 0 && !error && (
+            <p className="music-hint">Search any track — play yahi pe YouTube se.</p>
+          )}
         </div>
 
-        <p className="music-footer">
-          YouTube embeds · Spotify embeds · Amazon search links
-        </p>
+        <p className="music-footer">YouTube · Spotify · Amazon — on this site</p>
       </div>
     </>
   );

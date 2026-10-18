@@ -333,7 +333,7 @@ a {
   font-size: 0.75rem;
 }
 
-/* ===== MUSIC PAGE ===== */
+/* MUSIC PAGE */
 .music-page {
   max-width: 720px;
   margin: 0 auto;
@@ -450,6 +450,31 @@ a {
 .music-player.spotify {
   aspect-ratio: auto;
   height: 152px;
+}
+
+.music-player.amazon {
+  aspect-ratio: auto;
+  min-height: 420px;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f0f12;
+  padding: 0.5rem;
+}
+
+.music-player.amazon iframe {
+  flex: 1;
+  min-height: 360px;
+  border-radius: 12px;
+  background: #111;
+}
+
+.amazon-note {
+  color: #71717a;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .music-results {
