@@ -4,6 +4,7 @@ import Link from "next/link";
 import MusicToggle from "@/components/MusicToggle";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const DISCORD_INVITE = "https://discord.gg/rGxv4Bfs8";
 

@@ -2,17 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   exchangeCode,
   createSessionToken,
-  sessionCookieOptions,
+  applySessionCookie,
 } from "@/lib/discord-auth";
 
 export const dynamic = "force-dynamic";
-
-function baseUrl() {
-  const raw =
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  return raw.replace(/\/+$/, "");
-}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -20,50 +13,38 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get("error");
   const state = searchParams.get("state");
   const storedState = req.cookies.get("oauth_state")?.value;
+  const oauthOrigin = req.cookies.get("oauth_origin")?.value;
 
-  const root = baseUrl();
+  // Always use the same origin the login started on
+  const origin = (oauthOrigin || req.nextUrl.origin).replace(/\/+$/, "");
 
   if (error) {
-    return NextResponse.redirect(`${root}/login?error=${encodeURIComponent(error)}`);
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
-    return NextResponse.redirect(`${root}/login?error=missing_code`);
+    return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
 
   if (!state || !storedState || state !== storedState) {
-    return NextResponse.redirect(`${root}/login?error=invalid_state`);
+    return NextResponse.redirect(`${origin}/login?error=invalid_state`);
   }
 
-  const result = await exchangeCode(code);
+  const result = await exchangeCode(code, origin);
 
   if (!result.ok) {
     const msg = encodeURIComponent(result.error);
     const details = encodeURIComponent(JSON.stringify(result.details || {}));
-    return NextResponse.redirect(`${root}/login?error=${msg}&details=${details}`);
+    return NextResponse.redirect(`${origin}/login?error=${msg}&details=${details}`);
   }
 
   const token = createSessionToken(result.user);
-  const cookie = sessionCookieOptions(token);
+  const res = NextResponse.redirect(`${origin}/dashboard`);
+  applySessionCookie(res, token);
 
-  // Set cookie on redirect response so browser stores it before loading dashboard
-  const res = NextResponse.redirect(`${root}/dashboard`);
-  res.cookies.set({
-    name: cookie.name,
-    value: cookie.value,
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: cookie.maxAge,
-    expires: cookie.expires,
-  });
-  res.cookies.set({
-    name: "oauth_state",
-    value: "",
-    path: "/",
-    maxAge: 0,
-  });
+  // clear oauth temp cookies
+  res.cookies.set({ name: "oauth_state", value: "", path: "/", maxAge: 0 });
+  res.cookies.set({ name: "oauth_origin", value: "", path: "/", maxAge: 0 });
 
   return res;
 }

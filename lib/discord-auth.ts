@@ -5,22 +5,28 @@ export const COOKIE_NAME = "cr7_session";
 const SESSION_DAYS = 30;
 
 function getSecret() {
-  const s =
+  return (
     process.env.NEXTAUTH_SECRET ||
     process.env.DISCORD_CLIENT_SECRET ||
-    "cr7-fallback-secret-change-me";
-  return s.trim();
+    "cr7-fallback-secret-change-me"
+  ).trim();
 }
 
-function getBaseUrl() {
+/** Prefer real request host so cookie + redirect stay on same domain */
+export function getBaseUrlFromRequest(req?: { nextUrl?: { origin: string }; headers?: Headers }) {
+  if (req?.nextUrl?.origin) {
+    return req.nextUrl.origin.replace(/\/+$/, "");
+  }
   const raw =
     process.env.NEXTAUTH_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   return raw.replace(/\/+$/, "");
 }
 
-export function getCallbackUrl() {
-  return `${getBaseUrl()}/api/auth/callback/discord`;
+export function getCallbackUrl(origin?: string) {
+  const base = (origin || process.env.NEXTAUTH_URL || "").replace(/\/+$/, "") ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  return `${base.replace(/\/+$/, "")}/api/auth/callback/discord`;
 }
 
 export type SessionUser = {
@@ -94,38 +100,38 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 }
 
-export function sessionCookieOptions(token: string) {
+export function applySessionCookie(res: { cookies: { set: Function } }, token: string) {
   const maxAge = SESSION_DAYS * 24 * 60 * 60;
-  return {
+  res.cookies.set({
     name: COOKIE_NAME,
     value: token,
     httpOnly: true,
     secure: true,
-    sameSite: "lax" as const,
+    sameSite: "lax",
     path: "/",
     maxAge,
     expires: new Date(Date.now() + maxAge * 1000),
-  };
+  });
 }
 
-export function clearSessionCookie() {
-  return {
+export function clearSessionCookieOn(res: { cookies: { set: Function } }) {
+  res.cookies.set({
     name: COOKIE_NAME,
     value: "",
     httpOnly: true,
     secure: true,
-    sameSite: "lax" as const,
+    sameSite: "lax",
     path: "/",
     maxAge: 0,
     expires: new Date(0),
-  };
+  });
 }
 
-export function getDiscordAuthUrl(state: string) {
+export function getDiscordAuthUrl(state: string, origin: string) {
   const clientId = (process.env.DISCORD_CLIENT_ID || "").trim();
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: getCallbackUrl(),
+    redirect_uri: getCallbackUrl(origin),
     response_type: "code",
     scope: "identify email",
     state,
@@ -133,13 +139,13 @@ export function getDiscordAuthUrl(state: string) {
   return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 }
 
-export async function exchangeCode(code: string): Promise<
-  | { ok: true; user: SessionUser }
-  | { ok: false; error: string; details?: unknown }
-> {
+export async function exchangeCode(
+  code: string,
+  origin: string
+): Promise<{ ok: true; user: SessionUser } | { ok: false; error: string; details?: unknown }> {
   const clientId = (process.env.DISCORD_CLIENT_ID || "").trim();
   const clientSecret = (process.env.DISCORD_CLIENT_SECRET || "").trim();
-  const redirectUri = getCallbackUrl();
+  const redirectUri = getCallbackUrl(origin);
 
   if (!clientId || !clientSecret) {
     return { ok: false, error: "Missing DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET in Vercel env" };
@@ -168,16 +174,12 @@ export async function exchangeCode(code: string): Promise<
       details: {
         discord_error: tokenJson,
         redirect_uri_used: redirectUri,
-        client_id_preview: `${clientId.slice(0, 4)}...${clientId.slice(-4)}`,
-        client_secret_length: clientSecret.length,
       },
     };
   }
 
-  const accessToken = tokenJson.access_token as string;
-
   const userRes = await fetch("https://discord.com/api/users/@me", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${tokenJson.access_token}` },
   });
   const userJson = await userRes.json();
 

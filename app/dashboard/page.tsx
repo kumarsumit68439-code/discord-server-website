@@ -4,6 +4,7 @@ import Link from "next/link";
 import MusicToggle from "@/components/MusicToggle";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const DISCORD_CHANNEL_URL =
   "https://discord.com/channels/1561418826128560300/1561419818576519299";
