@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/discord-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -9,17 +8,11 @@ const DISCORD_INVITE = "https://discord.gg/rGxv4Bfs8";
 const API_KEYS_SITE = "https://clever-chat-keys.lovable.app/";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  const user = session.user;
+  const user = await getSession();
+  if (!user) redirect("/login");
 
   return (
     <div className="dash-root">
-      {/* Top bar */}
       <header className="dash-header">
         <div className="dash-brand">
           <span className="dash-logo">7</span>
@@ -27,11 +20,11 @@ export default async function DashboardPage() {
         </div>
         <div className="dash-header-right">
           <div className="dash-user-chip">
-            {user?.image && (
+            {user.image && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.image} alt="" className="dash-chip-avatar" />
             )}
-            <span>{user?.name}</span>
+            <span>{user.name}</span>
           </div>
           <Link href="/api/auth/signout" className="dash-signout">
             Sign out
@@ -40,60 +33,42 @@ export default async function DashboardPage() {
       </header>
 
       <div className="dash-body">
-        {/* Sidebar */}
         <aside className="dash-sidebar">
           <nav className="dash-nav">
             <a href="#overview" className="dash-nav-item active">
               Overview
             </a>
-            <a
-              href={DISCORD_CHANNEL_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dash-nav-item"
-            >
+            <a href={DISCORD_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="dash-nav-item">
               Discord Channel
             </a>
-            <a
-              href={API_KEYS_SITE}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dash-nav-item"
-            >
+            <a href={API_KEYS_SITE} target="_blank" rel="noopener noreferrer" className="dash-nav-item">
               API Keys Site
             </a>
-            <a
-              href={DISCORD_INVITE}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dash-nav-item"
-            >
+            <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" className="dash-nav-item">
               Invite Link
             </a>
           </nav>
         </aside>
 
-        {/* Main content */}
         <main className="dash-main">
           <section id="overview" className="dash-section">
-            <h1 className="dash-title">Welcome back, {user?.name?.split(" ")[0] || "User"}</h1>
+            <h1 className="dash-title">Welcome back, {user.name?.split(" ")[0] || "User"}</h1>
             <p className="dash-subtitle">
               You are logged in with Discord. Manage your server links and API access from here.
             </p>
 
-            {/* Profile card */}
             <div className="dash-grid">
               <div className="dash-card profile-card">
                 <div className="profile-row">
-                  {user?.image ? (
+                  {user.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.image} alt="avatar" className="profile-avatar" />
                   ) : (
                     <div className="profile-avatar placeholder">?</div>
                   )}
                   <div>
-                    <div className="profile-name">{user?.name}</div>
-                    <div className="profile-email">{user?.email || "Discord account"}</div>
+                    <div className="profile-name">{user.name}</div>
+                    <div className="profile-email">{user.email || "Discord account"}</div>
                     <div className="profile-status">
                       <span className="status-dot" /> Online · Discord connected
                     </div>
@@ -101,7 +76,6 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* Server card */}
               <div className="dash-card">
                 <div className="card-label">Your Server</div>
                 <div className="server-row">
@@ -111,50 +85,29 @@ export default async function DashboardPage() {
                     <div className="server-channel">#ai-api-key-website-links</div>
                   </div>
                 </div>
-                <a
-                  href={DISCORD_CHANNEL_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dash-btn primary"
-                >
+                <a href={DISCORD_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="dash-btn primary">
                   Open Channel →
                 </a>
               </div>
 
-              {/* Quick actions */}
               <div className="dash-card">
                 <div className="card-label">Quick Actions</div>
                 <div className="action-list">
-                  <a
-                    href={DISCORD_CHANNEL_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="action-item"
-                  >
+                  <a href={DISCORD_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="action-item">
                     <span className="action-icon">💬</span>
                     <div>
                       <div className="action-title">Discord Channel</div>
                       <div className="action-desc">API key website links</div>
                     </div>
                   </a>
-                  <a
-                    href={API_KEYS_SITE}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="action-item"
-                  >
+                  <a href={API_KEYS_SITE} target="_blank" rel="noopener noreferrer" className="action-item">
                     <span className="action-icon">🔑</span>
                     <div>
                       <div className="action-title">API Keys Website</div>
                       <div className="action-desc">clever-chat-keys.lovable.app</div>
                     </div>
                   </a>
-                  <a
-                    href={DISCORD_INVITE}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="action-item"
-                  >
+                  <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" className="action-item">
                     <span className="action-icon">➕</span>
                     <div>
                       <div className="action-title">Invite Friends</div>
@@ -164,7 +117,6 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* Stats placeholders */}
               <div className="dash-card stats-card">
                 <div className="card-label">Server Snapshot</div>
                 <div className="stats-row">
