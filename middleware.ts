@@ -8,7 +8,7 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const hasSession = Boolean(token && token.length > 20);
 
-  // Protect dashboard — no session → login
+  // Only guard dashboard — if no cookie, go login
   if (pathname.startsWith("/dashboard") && !hasSession) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
@@ -16,16 +16,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Already logged in → skip login page
-  if (pathname === "/login" && hasSession) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   const res = NextResponse.next();
-  // Help caches know response varies by cookie
   res.headers.set("Cache-Control", "no-store, must-revalidate");
   return res;
 }
