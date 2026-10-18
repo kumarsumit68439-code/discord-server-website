@@ -25,6 +25,9 @@ export type SessionUser = {
   name: string;
   image: string | null;
   email?: string | null;
+  /** Website-only display name (not Discord global) */
+  siteName?: string | null;
+  accessToken?: string | null;
 };
 
 function b64urlEncode(str: string) {
@@ -41,6 +44,9 @@ export function createSessionToken(user: SessionUser): string {
     name: user.name,
     image: user.image,
     email: user.email ?? null,
+    siteName: user.siteName ?? null,
+    // Keep token short — only store if fits; access tokens are long
+    accessToken: user.accessToken ? user.accessToken.slice(0, 2000) : null,
     exp: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
   });
   const payload = b64urlEncode(body);
@@ -50,7 +56,6 @@ export function createSessionToken(user: SessionUser): string {
 
 export function readSessionToken(token: string): SessionUser | null {
   if (!token || !token.includes(".")) return null;
-
   const i = token.lastIndexOf(".");
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
@@ -87,6 +92,8 @@ export function readSessionToken(token: string): SessionUser | null {
       name: String(data.name || "User"),
       image: data.image || null,
       email: data.email || null,
+      siteName: data.siteName || null,
+      accessToken: data.accessToken || null,
     };
   } catch {
     return null;
@@ -139,7 +146,7 @@ export function getDiscordAuthUrl(state: string, origin: string) {
     client_id: clientId,
     redirect_uri: getCallbackUrl(origin),
     response_type: "code",
-    scope: "identify email",
+    scope: "identify email guilds",
     state,
   });
   return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
@@ -171,7 +178,6 @@ export async function exchangeCode(
     body,
   });
   const tokenJson = await tokenRes.json();
-
   if (!tokenRes.ok) {
     return {
       ok: false,
@@ -199,6 +205,14 @@ export async function exchangeCode(
       name: userJson.global_name || userJson.username,
       image: avatar,
       email: userJson.email || null,
+      accessToken: tokenJson.access_token || null,
     },
   };
 }
+
+export const SERVER_ID =
+  process.env.DISCORD_SERVER_ID ||
+  process.env.NEXT_PUBLIC_DISCORD_SERVER_ID ||
+  "1561418826128560300";
+
+export const CHANNEL_ID = "1561419818576519299";
