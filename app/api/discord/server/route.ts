@@ -10,9 +10,12 @@ export async function GET() {
   }
 
   const botToken = (process.env.DISCORD_BOT_TOKEN || "").trim();
+  const clientId = (process.env.DISCORD_CLIENT_ID || "").trim();
+  const inviteUrl = clientId
+    ? `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=68608&scope=bot&guild_id=${SERVER_ID}`
+    : null;
 
-  // User guilds via OAuth token (if present)
-  let userGuilds: unknown[] = [];
+  let userGuilds: { id: string; name: string }[] = [];
   if (session.accessToken) {
     try {
       const gRes = await fetch("https://discord.com/api/users/@me/guilds", {
@@ -20,7 +23,10 @@ export async function GET() {
         cache: "no-store",
       });
       if (gRes.ok) {
-        userGuilds = await gRes.json();
+        const list = await gRes.json();
+        userGuilds = (Array.isArray(list) ? list : []).map(
+          (g: { id: string; name: string }) => ({ id: g.id, name: g.name })
+        );
       }
     } catch {
       /* ignore */
@@ -32,8 +38,8 @@ export async function GET() {
       botConfigured: false,
       serverId: SERVER_ID,
       userGuilds,
-      warning:
-        "Add DISCORD_BOT_TOKEN in Vercel to load live server channels & member count. Bot must be invited to your server.",
+      inviteUrl,
+      warning: "DISCORD_BOT_TOKEN missing in Vercel. Add bot token and redeploy.",
       guild: null,
       channels: [],
     });
@@ -51,10 +57,22 @@ export async function GET() {
       }),
     ]);
 
-    const guild = guildRes.ok ? await guildRes.json() : null;
+    if (!guildRes.ok) {
+      return NextResponse.json({
+        botConfigured: true,
+        serverId: SERVER_ID,
+        userGuilds,
+        inviteUrl,
+        warning: "Bot token OK but bot not in server (or no access). Use invite link.",
+        guild: null,
+        channels: [],
+      });
+    }
+
+    const guild = await guildRes.json();
     const channelsRaw = channelsRes.ok ? await channelsRes.json() : [];
     const channels = (Array.isArray(channelsRaw) ? channelsRaw : [])
-      .filter((c: { type: number }) => c.type === 0 || c.type === 5) // text / announcement
+      .filter((c: { type: number }) => c.type === 0 || c.type === 5)
       .map((c: { id: string; name: string; type: number }) => ({
         id: c.id,
         name: c.name,
@@ -65,19 +83,17 @@ export async function GET() {
       botConfigured: true,
       serverId: SERVER_ID,
       userGuilds,
-      guild: guild
-        ? {
-            id: guild.id,
-            name: guild.name,
-            icon: guild.icon
-              ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
-              : null,
-            memberCount: guild.approximate_member_count,
-            onlineCount: guild.approximate_presence_count,
-          }
-        : null,
+      inviteUrl,
+      guild: {
+        id: guild.id,
+        name: guild.name,
+        icon: guild.icon
+          ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
+          : null,
+        memberCount: guild.approximate_member_count,
+        onlineCount: guild.approximate_presence_count,
+      },
       channels,
-      guildError: guildRes.ok ? null : await guildRes.text(),
     });
   } catch (e) {
     return NextResponse.json(
