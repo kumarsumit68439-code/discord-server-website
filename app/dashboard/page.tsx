@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/discord-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import MusicToggle from "@/components/MusicToggle";
 
 const DISCORD_CHANNEL_URL =
   "https://discord.com/channels/1561418826128560300/1561419818576519299";
@@ -12,132 +13,90 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="dash-root">
-      <header className="dash-header">
-        <div className="dash-brand">
-          <span className="dash-logo">7</span>
-          <span className="dash-brand-text">CR7 AI Dashboard</span>
-        </div>
-        <div className="dash-header-right">
-          <div className="dash-user-chip">
-            {user.image && (
+    <>
+      <div className="bg-scene" />
+      <div className="page-wrap profile-page">
+        <div className="profile-card">
+          <div className="profile-avatar-wrap">
+            {user.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.image} alt="" className="dash-chip-avatar" />
+              <img src={user.image} alt={user.name} />
+            ) : (
+              <div className="placeholder">?</div>
             )}
-            <span>{user.name}</span>
+            <span className="online-ring" />
           </div>
-          <Link href="/api/auth/signout" className="dash-signout">
+
+          <h1 className="profile-name">{user.name}</h1>
+          <p className="profile-bio">CR7 AI · API keys · Discord community</p>
+
+          <div className="server-pill">
+            <span className="icon">7</span>
+            CR7 AI API KEY PROVIDER SERVER
+          </div>
+
+          <div className="link-stack">
+            <a
+              href={DISCORD_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-btn featured"
+            >
+              <span className="link-icon">💬</span>
+              <span className="link-text">
+                <span className="link-title">Open Discord Channel</span>
+                <span className="link-sub">#ai-api-key-website-links</span>
+              </span>
+            </a>
+
+            <a
+              href={API_KEYS_SITE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-btn"
+            >
+              <span className="link-icon">🔑</span>
+              <span className="link-text">
+                <span className="link-title">API Keys Website</span>
+                <span className="link-sub">clever-chat-keys.lovable.app</span>
+              </span>
+            </a>
+
+            <a
+              href={DISCORD_INVITE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-btn"
+            >
+              <span className="link-icon">➕</span>
+              <span className="link-text">
+                <span className="link-title">Join Server Invite</span>
+                <span className="link-sub">discord.gg/rGxv4Bfs8</span>
+              </span>
+            </a>
+
+            <a
+              href="https://discord.com/channels/@me"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-btn"
+            >
+              <span className="link-icon">👤</span>
+              <span className="link-text">
+                <span className="link-title">Open Discord App</span>
+                <span className="link-sub">Your DMs & servers</span>
+              </span>
+            </a>
+          </div>
+
+          <Link href="/api/auth/signout" className="signout-link">
             Sign out
           </Link>
         </div>
-      </header>
 
-      <div className="dash-body">
-        <aside className="dash-sidebar">
-          <nav className="dash-nav">
-            <a href="#overview" className="dash-nav-item active">
-              Overview
-            </a>
-            <a href={DISCORD_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="dash-nav-item">
-              Discord Channel
-            </a>
-            <a href={API_KEYS_SITE} target="_blank" rel="noopener noreferrer" className="dash-nav-item">
-              API Keys Site
-            </a>
-            <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" className="dash-nav-item">
-              Invite Link
-            </a>
-          </nav>
-        </aside>
-
-        <main className="dash-main">
-          <section id="overview" className="dash-section">
-            <h1 className="dash-title">Welcome back, {user.name?.split(" ")[0] || "User"}</h1>
-            <p className="dash-subtitle">
-              You are logged in with Discord. Manage your server links and API access from here.
-            </p>
-
-            <div className="dash-grid">
-              <div className="dash-card profile-card">
-                <div className="profile-row">
-                  {user.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.image} alt="avatar" className="profile-avatar" />
-                  ) : (
-                    <div className="profile-avatar placeholder">?</div>
-                  )}
-                  <div>
-                    <div className="profile-name">{user.name}</div>
-                    <div className="profile-email">{user.email || "Discord account"}</div>
-                    <div className="profile-status">
-                      <span className="status-dot" /> Online · Discord connected
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="dash-card">
-                <div className="card-label">Your Server</div>
-                <div className="server-row">
-                  <div className="server-icon">7</div>
-                  <div>
-                    <div className="server-name">CR7 AI API KEY PROVIDER SERVER</div>
-                    <div className="server-channel">#ai-api-key-website-links</div>
-                  </div>
-                </div>
-                <a href={DISCORD_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="dash-btn primary">
-                  Open Channel →
-                </a>
-              </div>
-
-              <div className="dash-card">
-                <div className="card-label">Quick Actions</div>
-                <div className="action-list">
-                  <a href={DISCORD_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="action-item">
-                    <span className="action-icon">💬</span>
-                    <div>
-                      <div className="action-title">Discord Channel</div>
-                      <div className="action-desc">API key website links</div>
-                    </div>
-                  </a>
-                  <a href={API_KEYS_SITE} target="_blank" rel="noopener noreferrer" className="action-item">
-                    <span className="action-icon">🔑</span>
-                    <div>
-                      <div className="action-title">API Keys Website</div>
-                      <div className="action-desc">clever-chat-keys.lovable.app</div>
-                    </div>
-                  </a>
-                  <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" className="action-item">
-                    <span className="action-icon">➕</span>
-                    <div>
-                      <div className="action-title">Invite Friends</div>
-                      <div className="action-desc">discord.gg/rGxv4Bfs8</div>
-                    </div>
-                  </a>
-                </div>
-              </div>
-
-              <div className="dash-card stats-card">
-                <div className="card-label">Server Snapshot</div>
-                <div className="stats-row">
-                  <div className="stat">
-                    <div className="stat-value">1</div>
-                    <div className="stat-label">Online</div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-value">1</div>
-                    <div className="stat-label">Members</div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-value">AI</div>
-                    <div className="stat-label">Focus</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </main>
+        <p className="profile-footer">CR7 AI · One link for your server</p>
       </div>
-    </div>
+      <MusicToggle />
+    </>
   );
 }

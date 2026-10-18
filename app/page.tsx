@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/discord-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import MusicToggle from "@/components/MusicToggle";
 
 const DISCORD_INVITE = "https://discord.gg/rGxv4Bfs8";
 
@@ -9,21 +10,29 @@ export default async function Home() {
   if (session) redirect("/dashboard");
 
   return (
-    <main className="landing">
-      <div className="card">
-        <div className="logo">7</div>
-        <h1>CR7 AI API KEY PROVIDER</h1>
-        <p className="desc">Login with Discord to open your dashboard and access the server.</p>
-        <Link href="/login" className="btn primary full">
-          Login with Discord
-        </Link>
-        <p className="or">
-          or{" "}
-          <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
-            join server directly
-          </a>
-        </p>
+    <>
+      <div className="bg-scene" />
+      <div className="page-wrap">
+        <main className="landing">
+          <div className="card">
+            <div className="logo">7</div>
+            <h1>CR7 AI API KEY PROVIDER</h1>
+            <p className="desc">
+              One clean login. Real AI API keys. Discord community.
+            </p>
+            <Link href="/login" className="btn primary full">
+              Login with Discord
+            </Link>
+            <p className="or">
+              or{" "}
+              <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
+                join server directly
+              </a>
+            </p>
+          </div>
+        </main>
       </div>
-    </main>
+      <MusicToggle />
+    </>
   );
 }
