@@ -3,10 +3,8 @@ import {
   exchangeCode,
   createSessionToken,
   sessionCookieOptions,
-  getBaseUrlSafe,
-} from "@/lib/discord-auth-callback";
+} from "@/lib/discord-auth";
 
-// re-export helpers inline to avoid circular issues
 function baseUrl() {
   const raw =
     process.env.NEXTAUTH_URL ||
@@ -34,10 +32,6 @@ export async function GET(req: NextRequest) {
   if (!state || !storedState || state !== storedState) {
     return NextResponse.redirect(`${root}/login?error=invalid_state`);
   }
-
-  const { exchangeCode, createSessionToken, sessionCookieOptions } = await import(
-    "@/lib/discord-auth"
-  );
 
   const result = await exchangeCode(code);
 
