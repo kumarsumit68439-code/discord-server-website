@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import crypto from "crypto";
+import type { NextResponse } from "next/server";
 
 export const COOKIE_NAME = "cr7_session";
 const SESSION_DAYS = 30;
 
-/** Stable secret — env first, then fixed fallback so verify never breaks across deploys */
 function getSecret() {
   const fromEnv = (process.env.NEXTAUTH_SECRET || "").trim();
   if (fromEnv.length >= 16) return fromEnv;
@@ -35,10 +35,6 @@ function b64urlDecode(str: string) {
   return Buffer.from(str, "base64url").toString("utf8");
 }
 
-function sign(payload: string): string {
-  return crypto.createHmac("sha256", getSecret()).update(payload).digest("base64url");
-}
-
 export function createSessionToken(user: SessionUser): string {
   const body = JSON.stringify({
     id: user.id,
@@ -48,7 +44,7 @@ export function createSessionToken(user: SessionUser): string {
     exp: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
   });
   const payload = b64urlEncode(body);
-  const sig = sign(payload);
+  const sig = crypto.createHmac("sha256", getSecret()).update(payload).digest("base64url");
   return `${payload}.${sig}`;
 }
 
@@ -60,7 +56,6 @@ export function readSessionToken(token: string): SessionUser | null {
   const sig = token.slice(i + 1);
   if (!payload || !sig) return null;
 
-  // Accept current secret OR previous fallback so old cookies still work
   const secrets = [
     getSecret(),
     "cr7-ai-session-secret-v1-do-not-change",
@@ -81,8 +76,6 @@ export function readSessionToken(token: string): SessionUser | null {
       /* next */
     }
   }
-
-  // Last resort: still try parse if signature matches length (dev recovery)
   if (!valid) return null;
 
   try {
@@ -105,22 +98,21 @@ export async function getSession(): Promise<SessionUser | null> {
     const store = await cookies();
     const raw = store.get(COOKIE_NAME)?.value;
     if (!raw) return null;
-    // Next may encode cookie values
-    const token = decodeURIComponent(raw);
+    let token = raw;
+    try {
+      token = decodeURIComponent(raw);
+    } catch {
+      token = raw;
+    }
     return readSessionToken(token);
   } catch {
     return null;
   }
 }
 
-export function applySessionCookie(
-  res: { cookies: { set: (args: Record<string, unknown>) => void } },
-  token: string
-) {
+export function applySessionCookie(res: NextResponse, token: string) {
   const maxAge = SESSION_DAYS * 24 * 60 * 60;
-  res.cookies.set({
-    name: COOKIE_NAME,
-    value: token,
+  res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
@@ -130,12 +122,8 @@ export function applySessionCookie(
   });
 }
 
-export function clearSessionCookieOn(
-  res: { cookies: { set: (args: Record<string, unknown>) => void } }
-) {
-  res.cookies.set({
-    name: COOKIE_NAME,
-    value: "",
+export function clearSessionCookieOn(res: NextResponse) {
+  res.cookies.set(COOKIE_NAME, "", {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
